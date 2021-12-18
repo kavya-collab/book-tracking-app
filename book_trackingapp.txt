@@ -1,0 +1,260 @@
+1.Create Aspnet Core web application
+2.Create a Model  with ERD diagram
+3.Create a Contoller with DbContext(Install:microsoft.visualstudio.web.codegeneration.Utils)
+4.Add Migrations
+type:add-migration InitialCreate
+  update-Database
+5.Apply Compression to the Pages,
+
+Products.cs
+==========
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Aspnet_Core_web_application.Models
+{
+    public class Product
+    {
+        public int Id { get; set; }
+        [Required(ErrorMessage ="Enter name")]
+        public string Name { get; set; }
+        [Required(ErrorMessage = "Enter price")]
+        //public string ProductName { get; set; }
+        public double price { get; set; }
+        
+        public bool IsAvailable { get; set; }
+    }
+}
+
+productscontrollers.cs
+=====================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using Aspnet_Core_web_application.Data;
+using Aspnet_Core_web_application.Models;
+
+namespace Aspnet_Core_web_application.Controllers
+{
+    public class ProductsController : Controller
+    {
+        private readonly Aspnet_Core_web_applicationContext _context;
+
+        public ProductsController(Aspnet_Core_web_applicationContext context)
+        {
+            _context = context;
+        }
+
+        // GET: Products
+        public async Task<IActionResult> Index()
+        {
+            return View(await _context.Product.ToListAsync());
+        }
+
+        // GET: Products/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Product
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            return View(product);
+        }
+
+        // GET: Products/Create
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Products/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Id,Name,price,IsAvailable")] Product product)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(product);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            return View(product);
+        }
+
+        // GET: Products/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Product.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+            return View(product);
+        }
+
+        // POST: Products/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,price,IsAvailable")] Product product)
+        {
+            if (id != product.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(product);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!ProductExists(product.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            return View(product);
+        }
+
+        // GET: Products/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Product
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            return View(product);
+        }
+
+        // POST: Products/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var product = await _context.Product.FindAsync(id);
+            _context.Product.Remove(product);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        private bool ProductExists(int id)
+        {
+            return _context.Product.Any(e => e.Id == id);
+        }
+    }
+}
+
+asp.netcore webapplicationContext.cs
+==============================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Aspnet_Core_web_application.Models;
+
+namespace Aspnet_Core_web_application.Data
+{
+    public class Aspnet_Core_web_applicationContext : DbContext
+    {
+        public Aspnet_Core_web_applicationContext (DbContextOptions<Aspnet_Core_web_applicationContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<Aspnet_Core_web_application.Models.Product> Product { get; set; }
+    }
+}
+
+statup.cs
+========
+public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllersWithViews();
+
+            services.AddDbContext<Aspnet_Core_web_applicationContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString("Aspnet_Core_web_applicationContext")));
+        }
+
+
+appsettings.json
+=============
+"ConnectionStrings": {
+    "Aspnet_Core_web_applicationContext": "Data Source=DESKTOP-NEQ7S2A\\SQLEXPRESS;Initial Catalog=EtherealServers;User ID=sa;Password=123*"
+  }
+}
+
+migration(20211216190306_InitialCreate)
+=================================
+using Microsoft.EntityFrameworkCore.Migrations;
+
+namespace Aspnet_Core_web_application.Migrations
+{
+    public partial class InitialCreate : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "Product",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    price = table.Column<double>(type: "float", nullable: false),
+                    IsAvailable = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Product", x => x.Id);
+                });
+        }
+
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "Product");
+        }
+    }
+}
