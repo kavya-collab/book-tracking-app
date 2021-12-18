@@ -1,0 +1,202 @@
+Book.cs
+==========
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace AspnetCoreBookLibrary.Models
+{
+    public class Book
+    {
+        public string ISBN { get; set; }
+        public string Title { get; set; }
+        public int Category {get;set;}
+        public string Author { get; set; }
+        public object Type { get; internal set; }
+    }
+}
+
+Category.cs
+=============
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace AspnetCoreBookLibrary.Models
+{
+    public class Category
+    {
+        public object CategoryType { get; internal set; }
+
+        internal static object DefaultIfEmpty()
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+CategoryType.cs
+==============
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace AspnetCoreBookLibrary.Models
+{
+    public class CategoryType
+    {
+    }
+}
+
+BookContext.cs
+============
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace AspnetCoreBookLibrary.Models
+{
+    public class BookContext:DbContext
+    {
+        public BookContext(DbContextOptions<BookContext> options):base(options)
+        {
+
+        }
+        public DbSet<Book> Books { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<CategoryType> CategoryTypes { get; set; }
+    }
+}
+
+appsettings.json
+===============
+"ConnectionStrings": {
+    "BookCon": "Data Source=DESKTOP-NEQ7S2A\\SQLEXPRESS;Initial Catalog=EtherealServers;User ID=sa;Password=123"
+  }
+
+statup.Cs
+========
+ public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllersWithViews();
+            services.AddDbContext<BookContext>(options=>options.UseSqlServer(Configuration.GetConnectionString("BookCon")));
+        }
+
+BookControllers.cs
+=================
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using AspnetCoreBookLibrary.Models;
+
+namespace AspnetCoreBookLibrary.Controllers
+{
+    public class BookController : Controller
+    {
+        private readonly BookContext _Db;
+        public BookController(BookContext Db)
+        {
+            _Db = Db;
+        }
+        public IActionResult BooksList()
+        {
+            try
+            {
+                //  var booklist = _Db.Books.ToList();
+
+                var booklist = from a in _Db.Books
+                               join b in _Db.Categories
+               on a.Category equals b.CategoryType
+                               into CategoryType
+                               from b in CategoryType.DefaultIfEmpty()
+
+                               select new Book
+                               {
+                                   ISBN = a.ISBN,
+                                   Title = a.Title,
+                                   Category = a.Category,
+                                   Author = a.Author,
+                                   Type = a.Type,
+                                   //Category=b==null ? "":b.Category
+
+
+                               };
+                return View(BooksList);
+            }
+            catch (Exception ex)
+            {
+                return View();
+            }
+
+        }
+
+        private IActionResult View(Func<IActionResult> booksList)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IActionResult create()
+        {
+            //LoadDDL();
+            return View();
+        }
+        [HttpPost]
+        public async Task<IActionResult> AddBook(Book obj)
+        {
+            try
+            {
+                if(ModelState.IsValid)
+                {
+                    if(obj.Category==0)
+                    {
+                        _Db.Books.Add(obj);
+                        await _Db.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _Db.Entry(obj).State=EntityState.Modified;
+                        await _Db.SaveChangesAsync();
+
+                    }
+                    return RedirectToAction("BookList");
+                }
+                return View();
+            }
+            catch (Exception  ex)
+            {
+                return View();
+            }
+        }
+
+        public async Task<IActionResult> Deletebook(int id)
+        {
+            try
+            {
+                var book = await _Db.Books.FindAsync();
+                {
+                    if(book!=null)
+                    {
+                        _Db.Books.Remove(book);
+                        await _Db.SaveChangesAsync();
+
+                    }
+                }
+                return RedirectToAction("BookList");
+            }
+            catch(Exception ex)
+            {
+                return RedirectToAction("BookList");
+
+            }
+        }
+        
+    }
+}
